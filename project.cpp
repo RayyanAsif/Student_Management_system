@@ -50,6 +50,7 @@ void AddDetails() {
 
     printf("\n\n\t\t\tEnter section: ");
     scanf(" %c", &s.section);
+    getchar();
 
     for (int j = 0; j < 3; j++) {
         printf("\n\n\t\t\tEnter course id: ");
