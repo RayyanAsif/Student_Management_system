@@ -2,6 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_COURSES 6
+
+struct fees {
+    float total_fee;
+    float paid_fee;
+    float outstanding_fee;
+};
+
 struct Marks {
     float midterm;
     float final;
@@ -17,42 +25,79 @@ struct course {
 
 struct student {
     int roll;
-    char name[20];
-    char father_name[20];
+    char name[50];
+    char father_name[50];
     char section;
-    struct course courses[6];
+    char email[30];
+    int num_courses;
+    struct course courses[MAX_COURSES];
+    struct fees fee_details;
 };
-void startup(){
-	printf("\t\t\t\t\t--------------------------------");
-	printf("\n\t\t\t\t\t|                              |");
-	printf("\n\t\t\t\t\t|       Welcome To FAST-NU     |");
-	printf("\n\t\t\t\t\t|                              |");
-	printf("\n\t\t\t\t\t--------------------------------");
+
+int validateEmail(char email[]) {
+    if (email == NULL || email[0] == '\0') {
+        return 0; // Empty string is invalid
+    }
+
+    int at_count = 0, dot_count = 0;
+    for (int i = 0; email[i] != '\0'; i++) {
+        if (email[i] == '@') {
+            at_count++;
+        } else if (email[i] == '.') {
+            dot_count++;
+        }
+    }
+    
+    return (at_count == 1 && dot_count >= 1);
 }
+
+void startup() {
+    printf("\t\t\t\t\t--------------------------------\n");
+    printf("\t\t\t\t\t|                              |\n");
+    printf("\t\t\t\t\t|       Welcome To FAST-NU     |\n");
+    printf("\t\t\t\t\t|                              |\n");
+    printf("\t\t\t\t\t--------------------------------\n");
+}
+
 void AddDetails() {
     struct student s;
-    FILE *fp = fopen("students.txt", "a");
+    int x;
+    FILE *fp = fopen("students.dat", "ab");
     if (fp == NULL) {
-        printf("\t\t\t\nError opening file");
+        printf("\n\t\t\tError opening file.\n");
         return;
     }
 
     printf("\n\n\t\t\tEnter roll no: ");
     scanf("%d", &s.roll);
     getchar();
+    
     printf("\n\n\t\t\tEnter name: ");
     fgets(s.name, sizeof(s.name), stdin);
-    s.name[strcspn(s.name, "\n")] = '\0'; // Remove newline
-
+    s.name[strcspn(s.name, "\n")] = '\0';
+    do {
+        printf("\n\n\t\t\tEnter email (format: name@domain.com): ");
+        fgets(s.email, sizeof(s.email), stdin);
+        s.email[strcspn(s.email, "\n")] = '\0';
+        x = validateEmail(s.email);
+        if (x == 0) {
+            printf("\n\n\t\t\tInvalid email format. Please try again.\n");
+        }
+    } while (x != 1);
+    
     printf("\n\n\t\t\tEnter your father's name: ");
     fgets(s.father_name, sizeof(s.father_name), stdin);
-    s.father_name[strcspn(s.father_name, "\n")] = '\0'; // Remove newline
+    s.father_name[strcspn(s.father_name, "\n")] = '\0';
 
     printf("\n\n\t\t\tEnter section: ");
     scanf(" %c", &s.section);
     getchar();
-
-    for (int j = 0; j < 3; j++) {
+    
+    printf("\n\n\t\t\tEnter number of courses: ");
+    scanf("%d",&s.num_courses);
+    getchar();
+    
+    for (int j = 0; j < s.num_courses; j++) {
         printf("\n\n\t\t\tEnter course id: ");
         scanf("%s", s.courses[j].courseid);
 
@@ -71,13 +116,8 @@ void AddDetails() {
         printf("\n\n\t\t\tEnter assignment marks: ");
         scanf("%f", &s.courses[j].course_marks.assignment);
     }
-    fprintf(fp, "%d\n%s\n%s\n%c\n", s.roll, s.name, s.father_name, s.section);
-    for (int j = 0; j < 3; j++) {
-        fprintf(fp, "%s %s %.2f %.2f %.2f %.2f\n", s.courses[j].courseid, s.courses[j].course_name,
-                s.courses[j].gpa, s.courses[j].course_marks.midterm,
-                s.courses[j].course_marks.final, s.courses[j].course_marks.assignment);
-    }
-    fprintf(fp, "END\n"); // Marker for end of one student record
+
+    fwrite(&s, sizeof(struct student), 1, fp);
     fclose(fp);
 
     printf("\n\n\t\t\tStudent details added successfully.\n");
@@ -85,273 +125,397 @@ void AddDetails() {
 
 void DisplayAllStudents() {
     struct student s;
-    FILE *fp = fopen("students.txt", "r");
+    FILE *fp = fopen("students.dat", "rb");
     if (fp == NULL) {
-        perror("\n\n\t\t\tError opening file");
+        printf("\n\n\t\t\tError opening file.\n");
         return;
     }
 
     printf("\n\n\t\t\tAll Student Details:\n");
-    while (fscanf(fp, "%d\n", &s.roll) != EOF) {
-        fgets(s.name, sizeof(s.name), fp);
-        s.name[strcspn(s.name, "\n")] = '\0'; // Remove newline
-
-        fgets(s.father_name, sizeof(s.father_name), fp);
-        s.father_name[strcspn(s.father_name, "\n")] = '\0'; // Remove newline
-
-        fscanf(fp, " %c\n", &s.section);
-
+    while (fread(&s, sizeof(struct student), 1, fp)) {
         printf("\n-------------------------------------------------\n");
-        printf("\n\n\t\t\tStudent Roll: %d\n", s.roll);
-        printf("\n\n\t\t\tName: %s\n", s.name);
-        printf("\n\n\t\t\tFather's Name: %s\n", s.father_name);
-        printf("\n\n\t\t\tSection: %c\n", s.section);
+        printf("\n\t\t\tStudent Roll: %d\n", s.roll);
+        printf("\n\t\t\tName: %s\n", s.name);
+        printf("\n\t\t\tEmail: %s\n", s.email);
+        printf("\n\t\t\tFather's Name: %s\n", s.father_name);
+        printf("\n\t\t\tSection: %c\n", s.section);
 
-        for (int j = 0; j < 3; j++) {
-            fscanf(fp, "%s %s %f %f %f %f\n", s.courses[j].courseid, s.courses[j].course_name,
-                   &s.courses[j].gpa, &s.courses[j].course_marks.midterm,
-                   &s.courses[j].course_marks.final, &s.courses[j].course_marks.assignment);
-
-            printf("\n\n\t\t\t  Course %d:\n", j + 1);
-            printf("\n\n\t\t\t    Course ID: %s\n", s.courses[j].courseid);
-            printf("\n\n\t\t\t    Course Name: %s\n", s.courses[j].course_name);
-            printf("\n\n\t\t\t    GPA: %.2f\n", s.courses[j].gpa);
-            printf("\n\n\t\t\t    Marks:\n");
-            printf("\n\n\t\t\t      Midterm: %.2f\n", s.courses[j].course_marks.midterm);
-            printf("\n\n\t\t\t      Final: %.2f\n", s.courses[j].course_marks.final);
-            printf("\n\n\t\t\t     Assignment: %.2f\n", s.courses[j].course_marks.assignment);
+        for (int j = 0; j < s.num_courses; j++) {
+            printf("\n\t\t\tCourse %d:\n", j + 1);
+            printf("\n\t\t\t  Course ID: %s\n", s.courses[j].courseid);
+            printf("\n\t\t\t  Course Name: %s\n", s.courses[j].course_name);
+            printf("\n\t\t\t  GPA: %.2f\n", s.courses[j].gpa);
+            printf("\n\t\t\t  Marks:\n");
+            printf("\n\t\t\t    Midterm: %.2f\n", s.courses[j].course_marks.midterm);
+            printf("\n\t\t\t    Final: %.2f\n", s.courses[j].course_marks.final);
+            printf("\n\t\t\t    Assignment: %.2f\n", s.courses[j].course_marks.assignment);
         }
-        fscanf(fp, "END\n");
-        printf("-------------------------------------------------\n");
     }
-
     fclose(fp);
 }
 
 void UpdateDetails() {
     int roll, found = 0;
     struct student s;
-    FILE *fp = fopen("students.txt", "r");
-    FILE *temp = fopen("temp.txt", "w");
-
-    if (fp == NULL || temp == NULL) {
-        perror("\n\n\t\t\t\tError opening file");
+    FILE *fp = fopen("students.dat", "rb+");
+    if (fp == NULL) {
+        printf("\n\n\t\t\tError opening file.\n");
         return;
     }
 
-    printf("\n\n\t\t\t\tEnter roll number of the student to update: ");
+    printf("\n\n\t\t\tEnter roll number of the student to update: ");
     scanf("%d", &roll);
-
-    while (fscanf(fp, "%d\n", &s.roll) != EOF) {
-        fgets(s.name, sizeof(s.name), fp);
-        s.name[strcspn(s.name, "\n")] = '\0';
-
-        fgets(s.father_name, sizeof(s.father_name), fp);
-        s.father_name[strcspn(s.father_name, "\n")] = '\0';
-
-        fscanf(fp, " %c\n", &s.section);
-
-        for (int j = 0; j < 3; j++) {
-            fscanf(fp, "%s %s %f %f %f %f\n", s.courses[j].courseid, s.courses[j].course_name,
-                   &s.courses[j].gpa, &s.courses[j].course_marks.midterm,
-                   &s.courses[j].course_marks.final, &s.courses[j].course_marks.assignment);
-        }
-        fscanf(fp, "END\n");
-
+    getchar();
+    while (fread(&s, sizeof(struct student), 1, fp)) {
         if (s.roll == roll) {
             found = 1;
-            printf("\n\n\t\t\t\t1. Name\n");
-            printf("\n\n\t\t\t\t2. Father's Name\n");
-            printf("\n\n\t\t\t\t3. Section\n");
-            printf("\n\n\t\t\t\t4. Courses\n");
+            printf("\n\n\t\t\tEnter new name: ");
+            fgets(s.name, sizeof(s.name), stdin);
+            s.name[strcspn(s.name, "\n")] = '\0';
+            
+            printf("\n\n\t\t\tEnter new email: ");
+            fgets(s.email, sizeof(s.email), stdin);
+            s.name[strcspn(s.name, "\n")] = '\0';
 
-            int option;
-            printf("\n\n\t\t\t\tEnter option to update: ");
-            scanf("%d", &option);
-            getchar();
-			switch (option) {
-                case 1:
-                    printf("\n\n\t\t\t\tEnter new name: ");
-                    fgets(s.name, sizeof(s.name), stdin);
-                    s.name[strcspn(s.name, "\n")] = '\0';
-                    break;
-                case 2:
-                    printf("\n\n\t\t\t\tEnter new father's name: ");
-                    fgets(s.father_name, sizeof(s.father_name), stdin);
-                    s.father_name[strcspn(s.father_name, "\n")] = '\0';
-                    break;
-                case 3:
-                    printf("\n\n\t\t\t\tEnter new section: ");
-                    scanf(" %c", &s.section);
-                    break;
-                case 4:
-                    for (int j = 0; j < 3; j++) {
-                        printf("\n\n\t\t\t\tEnter course id: ");
-                        scanf("%s", s.courses[j].courseid);
+            printf("\n\n\t\t\tEnter new father's name: ");
+            fgets(s.father_name, sizeof(s.father_name), stdin);
+            s.father_name[strcspn(s.father_name, "\n")] = '\0';
 
-                        printf("\n\n\t\t\t\tEnter course name: ");
-                        scanf("%s", s.courses[j].course_name);
+            printf("\n\n\t\t\tEnter new section: ");
+            scanf(" %c", &s.section);
 
-                        printf("\n\n\t\t\t\tEnter GPA: ");
-                        scanf("%f", &s.courses[j].gpa);
-
-                        printf("\n\n\t\t\t\tEnter midterm marks: ");
-                        scanf("%f", &s.courses[j].course_marks.midterm);
-
-                        printf("\n\n\t\t\t\tEnter final marks: ");
-                        scanf("%f", &s.courses[j].course_marks.final);
-
-                        printf("\n\n\t\t\t\tEnter assignment marks: ");
-                        scanf("%f", &s.courses[j].course_marks.assignment);
-                    }
-                    break;
-                default:
-                    printf("\n\n\t\t\t\tInvalid option.\n");
-            }
+            fseek(fp, sizeof(struct student), SEEK_CUR);
+            fwrite(&s, sizeof(struct student), 1, fp);
+            printf("\n\n\t\t\tStudent details updated successfully.\n");
+            break;
         }
-        fprintf(temp, "%d\n%s\n%s\n%c\n", s.roll, s.name, s.father_name, s.section);
-        for (int j = 0; j < 3; j++) {
-            fprintf(temp, "%s %s %.2f %.2f %.2f %.2f\n", s.courses[j].courseid, s.courses[j].course_name,
-                    s.courses[j].gpa, s.courses[j].course_marks.midterm,
-                    s.courses[j].course_marks.final, s.courses[j].course_marks.assignment);
+    }
+
+    if (!found) {
+        printf("\n\n\t\t\tStudent with roll number %d not found.\n", roll);
+    }
+    fclose(fp);
+}
+
+void delete_student() {
+    struct student s;
+    int roll, found = 0;
+    FILE *fp = fopen("students.dat", "rb");
+    FILE *temp = fopen("temp.dat", "wb");
+
+    if (fp == NULL || temp == NULL) {
+        printf("\n\n\t\t\tError opening file.\n");
+        return;
+    }
+
+    printf("\n\n\t\t\tEnter roll number: ");
+    scanf("%d", &roll);
+
+    while (fread(&s, sizeof(struct student), 1, fp)) {
+        if (s.roll == roll) {
+            found = 1;
+            printf("\n\n\t\t\tRecord of student with roll number %d deleted successfully.\n", roll);
+        } else {
+            fwrite(&s, sizeof(struct student), 1, temp);
         }
-        fprintf(temp, "END\n");
     }
 
     fclose(fp);
     fclose(temp);
 
-    remove("students.txt");
-    rename("temp.txt", "students.txt");
+    remove("students.dat");
+    rename("temp.dat", "students.dat");
 
-    if (found) {
-        printf("\n\n\t\t\tStudent details updated successfully.\n");
-    } else {
-        printf("\n\n\t\t\tStudent with roll number %d not found.\n", roll);
+    if (!found) {
+        printf("\n\n\t\t\tRecord not found.\n");
     }
 }
-void delete_student(){
-	struct student s;
-	int roll;
-	int found=0;
-	printf("\t\t\t\nEnter roll number: ");
-	scanf("%d",&roll);
-	FILE *ptr,*temp;
-	ptr = fopen("students.txt","r");
-	temp = fopen("temp.txt","w");
-	while (fscanf(ptr, "%d\n", &s.roll) != EOF){
-        fgets(s.name, sizeof(s.name), ptr);
-        s.name[strcspn(s.name, "\n")] = '\0';
-		fgets(s.father_name, sizeof(s.father_name), ptr);
-        s.father_name[strcspn(s.father_name, "\n")] = '\0';
-		fscanf(ptr, " %c\n", &s.section);
-		for (int j = 0; j < 3; j++) {
-            fscanf(ptr, "%s %s %f %f %f %f\n", s.courses[j].courseid, s.courses[j].course_name,
-                   &s.courses[j].gpa, &s.courses[j].course_marks.midterm,
-                   &s.courses[j].course_marks.final, &s.courses[j].course_marks.assignment);
-        }
-        fscanf(ptr, "END\n");
-		if (s.roll == roll) {
-            found = 1;
-            printf("\n\n\t\t\t\tRecord of student with roll number %d deleted successfully.\n", roll);
-        } else {
-            fprintf(temp, "%d\n%s\n%s\n%c\n", s.roll, s.name, s.father_name, s.section);
-            for (int j = 0; j < 3; j++) {
-                fprintf(temp, "%s %s %.2f %.2f %.2f %.2f\n", s.courses[j].courseid, s.courses[j].course_name,
-                        s.courses[j].gpa, s.courses[j].course_marks.midterm,
-                        s.courses[j].course_marks.final, s.courses[j].course_marks.assignment);
-            }
-            fprintf(temp, "END\n");
-        }
-    }
-	fclose(ptr);
-	fclose(temp);
-	if(found==0){
-		printf("\n\n\t\t\t\tRecord not found\n");
-	}
-	else{
-		remove("student.txt");
-		rename("temp.txt","students.txt");
-	}
-}
+
 void reportcard() {
     struct student s;
     int roll, found = 0;
-    FILE *ptr = fopen("students.txt", "r");
-	if (ptr == NULL) {
-        printf("\t\t\t\nError opening file\n");
+    FILE *fp = fopen("students.dat", "rb");
+    if (fp == NULL) {
+        printf("\n\n\t\t\tError opening file.\n");
         return;
     }
-	printf("\t\t\t\nEnter roll number of the student to generate report card: ");
+
+    printf("\n\n\t\t\tEnter roll number of the student to generate report card: ");
     scanf("%d", &roll);
-	while (fscanf(ptr, "%d\n", &s.roll) != EOF){
-        fgets(s.name, sizeof(s.name),ptr);
-        s.name[strcspn(s.name, "\n")] = '\0';
-		fgets(s.father_name, sizeof(s.father_name), ptr);
-        s.father_name[strcspn(s.father_name, "\n")] = '\0';
 
-        fscanf(ptr, " %c\n", &s.section);
-
-        for (int j = 0; j < 3; j++) {
-            fscanf(ptr, "%s %s %f %f %f %f\n", s.courses[j].courseid, s.courses[j].course_name,
-                   &s.courses[j].gpa, &s.courses[j].course_marks.midterm,
-                   &s.courses[j].course_marks.final, &s.courses[j].course_marks.assignment);
-        }
-        fscanf(ptr, "END\n");
-
+    while (fread(&s, sizeof(struct student), 1, fp)) {
         if (s.roll == roll) {
             found = 1;
 
             printf("\n\n-------------------- REPORT CARD --------------------\n");
-            printf("\t\t\t\nStudent Name: %s\n", s.name);
-            printf("\t\t\t\nFather's Name: %s\n", s.father_name);
-            printf("\t\t\t\nRoll Number: %d\n", s.roll);
-            printf("\t\t\t\nSection: %c\n", s.section);
-            printf("----------------------------------------------------\n");
-            printf("\t\t\t\nCourse ID   Course Name   Midterm   Final   Assignment   Total\n");
+            printf("\n\t\t\tStudent Name: %s", s.name);
+            printf("\n\t\t\tStudent email: %s", s.email);
+            printf("\n\t\t\tFather's Name: %s", s.father_name);
+            printf("\n\t\t\tRoll Number: %d", s.roll);
+            printf("\n\t\t\tSection: %c", s.section);
+            printf("\n----------------------------------------------------\n");
+            printf("\n\t\t\tCourse ID   Course Name   Midterm   Final   Assignment   Total\n");
 
             float totalMarks = 0, averageMarks = 0;
-            for (int j = 0; j < 3; j++) {
+            for (int j = 0; j < s.num_courses; j++) {
                 float courseTotal = s.courses[j].course_marks.midterm +
                                     s.courses[j].course_marks.final +
                                     s.courses[j].course_marks.assignment;
 
                 totalMarks += courseTotal;
 
-                printf("\t\t\t\n%-10s %-13s %-9.2f %-7.2f %-11.2f %-6.2f\n",
+                printf("\n\t\t\t%-10s %-13s %-9.2f %-7.2f %-11.2f %-6.2f",
                        s.courses[j].courseid, s.courses[j].course_name,
                        s.courses[j].course_marks.midterm, s.courses[j].course_marks.final,
                        s.courses[j].course_marks.assignment, courseTotal);
             }
 
-            averageMarks = totalMarks / 3.0;
-            printf("----------------------------------------------------\n");
-            printf("\t\t\t\nOverall Total Marks: %.2f\n", totalMarks);
-            printf("\t\t\t\nOverall Average Marks: %.2f\n", averageMarks);
-            printf("----------------------------------------------------\n");
+            averageMarks = totalMarks / MAX_COURSES;
+            printf("\n----------------------------------------------------\n");
+            printf("\n\t\t\tOverall Total Marks: %.2f", totalMarks);
+            printf("\n\t\t\tOverall Average Marks: %.2f", averageMarks);
+            printf("\n----------------------------------------------------\n");
             break;
         }
     }
 
-    if (found==0){
-        printf("Student with roll number %d not found.\n", roll);
+    if (!found) {
+        printf("\n\n\t\t\tStudent with roll number %d not found.\n", roll);
+    }
+    fclose(fp);
+}
+
+
+
+void searchStudent() {
+    int roll, found = 0;
+    struct student s;
+    FILE *fp = fopen("students.dat", "rb");
+    if (fp == NULL) {
+        printf("\n\n\t\t\tError opening file.\n");
+        return;
     }
 
-    fclose(ptr);
+    printf("\n\n\t\t\tEnter roll number of the student to search: ");
+    scanf("%d", &roll);
+
+    while (fread(&s, sizeof(struct student), 1, fp)) {
+        if (s.roll == roll) {
+            found = 1;
+            printf("\n\n\t\t\tStudent Found:\n");
+            printf("\n\t\t\tRoll: %d\n", s.roll);
+            printf("\t\t\tName: %s\n", s.name);
+            printf("\n\t\t\tEmail: %d\n", s.email);
+            printf("\t\t\tFather's Name: %s\n", s.father_name);
+            printf("\t\t\tSection: %c\n", s.section);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("\n\n\t\t\tStudent with roll number %d not found.\n", roll);
+    }
+
+    fclose(fp);
 }
+void searchStudentByName() {
+    char name[50];
+    int found = 0;
+    struct student s;
+    FILE *fp = fopen("students.dat", "rb");
+    if (fp == NULL) {
+        printf("\n\n\t\t\tError opening file.\n");
+        return;
+    }
+
+    printf("\n\n\t\t\tEnter name of the student to search: ");
+    getchar(); 
+    fgets(name, sizeof(name), stdin);
+    name[strcspn(name, "\n")] = '\0'; 
+
+    while (fread(&s, sizeof(struct student), 1, fp)) {
+        if (stricmp(s.name, name) == 0) {
+            found = 1;
+            printf("\n\n\t\t\tStudent Found:\n");
+            printf("\n\t\t\tRoll: %d\n", s.roll);
+            printf("\t\t\tName: %s\n", s.name);
+            printf("\n\t\t\tEmail: %d\n", s.email);
+            printf("\t\t\tFather's Name: %s\n", s.father_name);
+            printf("\t\t\tSection: %c\n", s.section);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("\n\n\t\t\tStudent with name %s not found.\n", name);
+    }
+
+    fclose(fp);
+}
+
+void addFees() {
+    struct student s;
+    int roll, found = 0;
+    FILE *fp = fopen("students.dat", "rb+");
+    if (fp == NULL) {
+        printf("\n\n\t\t\tError opening file.\n");
+        return;
+    }
+
+    printf("\n\n\t\t\tEnter roll number to add fee details: ");
+    scanf("%d", &roll);
+
+    while (fread(&s, sizeof(struct student), 1, fp)) {
+        if (s.roll == roll) {
+            found = 1;
+            printf("\n\n\t\t\tEnter total fee: ");
+            scanf("%f", &s.fee_details.total_fee);
+
+            printf("\n\n\t\t\tEnter paid fee: ");
+            scanf("%f", &s.fee_details.paid_fee);
+
+            s.fee_details.outstanding_fee = s.fee_details.total_fee - s.fee_details.paid_fee;
+
+            fseek(fp, -sizeof(struct student), SEEK_CUR);
+            fwrite(&s, sizeof(struct student), 1, fp);
+            printf("\n\n\t\t\tFee details added successfully.\n");
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("\n\n\t\t\tStudent with roll number %d not found.\n", roll);
+    }
+
+    fclose(fp);
+}
+
+void displayFees() {
+    struct student s;
+    int roll, found = 0;
+    FILE *fp = fopen("students.dat", "rb");
+    if (fp == NULL) {
+        printf("\n\n\t\t\tError opening file.\n");
+        return;
+    }
+
+    printf("\n\n\t\t\tEnter roll number to display fee details: ");
+    scanf("%d", &roll);
+
+    while (fread(&s, sizeof(struct student), 1, fp)) {
+        if (s.roll == roll) {
+            found = 1;
+            printf("\n\n\t\t\tStudent Fee Details:\n");
+            printf("\n\t\t\tTotal Fee: %.2f", s.fee_details.total_fee);
+            printf("\n\t\t\tPaid Fee: %.2f", s.fee_details.paid_fee);
+            printf("\n\t\t\tOutstanding Fee: %.2f", s.fee_details.outstanding_fee);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("\n\n\t\t\tStudent with roll number %d not found.\n", roll);
+    }
+
+    fclose(fp);
+}
+
+void updateFees() {
+    struct student s;
+    int roll, found = 0;
+    FILE *fp = fopen("students.dat", "rb+");
+    if (fp == NULL) {
+        printf("\n\n\t\t\tError opening file.\n");
+        return;
+    }
+
+    printf("\n\n\t\t\tEnter roll number to update fee details: ");
+    scanf("%d", &roll);
+
+    while (fread(&s, sizeof(struct student), 1, fp)) {
+        if (s.roll == roll) {
+            found = 1;
+            printf("\n\n\t\t\tEnter total fee: ");
+            scanf("%f", &s.fee_details.total_fee);
+
+            printf("\n\n\t\t\tEnter paid fee: ");
+            scanf("%f", &s.fee_details.paid_fee);
+
+            s.fee_details.outstanding_fee = s.fee_details.total_fee - s.fee_details.paid_fee;
+
+            fseek(fp, -sizeof(struct student), SEEK_CUR);
+            fwrite(&s, sizeof(struct student), 1, fp);
+            printf("\n\n\t\t\tFee details updated successfully.\n");
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("\n\n\t\t\tStudent with roll number %d not found.\n", roll);
+    }
+
+    fclose(fp);
+}
+void generatecoursesReport() {
+    struct student s;
+    FILE *fptr = fopen("students.dat", "rb");
+    if (fptr == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    struct {
+        char coursename[20];
+        int count;
+    } courseStats[100];
+    int courseCount = 0;
+    int i,j;
+    while (fread(&s, sizeof(struct student), 1, fptr)) {
+        for ( i = 0; i < s.num_courses; i++) {
+            int found = 0;
+            for ( j = 0; j < courseCount; j++) {
+                if (strcmp(courseStats[j].coursename, s.courses[i].course_name) == 0) {
+                    courseStats[j].count++;
+                    found = 1;
+                    break;
+                }
+            }
+            if (!found) {
+                strcpy(courseStats[courseCount].coursename, s.courses[i].course_name);
+                courseStats[courseCount].count = 1;
+                courseCount++;
+            }
+        }
+    }
+
+    fclose(fptr);
+
+    printf("\nCourse Enrollment Report:\n");
+    for (i = 0; i < courseCount; i++) {
+        printf("Course Name: %s, Enrolled Students: %d\n", courseStats[i].coursename, courseStats[i].count);
+    }
+}
+
 int main() {
     int choice;
+
     startup();
+
     while (1) {
-    	printf("\n\t\t\t********************************************************");
-        printf("\n\t\t\t\t1. Add Student Details\n");
-        printf("\n\t\t\t\t2. Update Student Details\n");
-        printf("\n\t\t\t\t3. Display All Students\n");
-        printf("\n\t\t\t\t4. Exit\n");
-        printf("\n\t\t\t\t5. Delete a Record\n");
-        printf("\n\t\t\t\t6. Generate Report Card\n");
-        printf("\n\t\t\t********************************************************");
-        printf("\n\n\t\t\t\tEnter your choice: ");
+        printf("\n\n\t\t\tMenu:\n");
+        printf("\t\t\t1. Add student details\n");
+        printf("\t\t\t2. Display all students\n");
+        printf("\t\t\t3. Update student details\n");
+        printf("\t\t\t4. Delete student\n");
+        printf("\t\t\t5. Generate report card\n");
+        printf("\t\t\t6. Add fee details\n");
+        printf("\t\t\t7. Display fee details\n");
+        printf("\t\t\t8. Update fee details\n");
+        printf("\t\t\t9. Search student by roll number\n");
+        printf("\t\t\t10. Search student by name\n");
+        printf("\t\t\t11. Display courses report\n");
+        printf("\t\t\t12. Exit\n");
+        printf("\n\n\t\t\tEnter choice: ");
         scanf("%d", &choice);
 
         switch (choice) {
@@ -359,22 +523,41 @@ int main() {
                 AddDetails();
                 break;
             case 2:
-                UpdateDetails();
-                break;
-            case 3:
                 DisplayAllStudents();
                 break;
+            case 3:
+                UpdateDetails();
+                break;
             case 4:
-                return 0;
+                delete_student();
+                break;
             case 5:
-				delete_student();
-				break; 
-			case 6:
-				reportcard();
-				break;	
+                reportcard();
+                break;
+            case 6:
+                addFees();
+                break;
+            case 7:
+                displayFees();
+                break;
+            case 8:
+                updateFees();
+                break;
+            case 9:
+                searchStudent();
+                break;
+            case 10:
+                searchStudentByName();
+                break;
+            case 11: 
+            	generatecoursesReport();
+				break;
+            case 12:
+                exit(0);
             default:
-                printf("Invalid choice!\n");
+                printf("\n\t\t\tInvalid choice.\n");
         }
     }
+
     return 0;
 }
