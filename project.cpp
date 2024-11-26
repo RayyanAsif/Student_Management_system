@@ -34,9 +34,33 @@ struct student {
     struct fees fee_details;
 };
 
+void AddDummyData() {
+    FILE *fp = fopen("students.dat", "wb");
+    if (fp == NULL) {
+        printf("\n\n\t\t\tError creating file.\n");
+        return;
+    }
+
+    struct student s = {
+        1,
+        "akbar",
+        "ali",
+        'A',
+        "akbar@example.com",
+        2, 
+        {
+            {"CS101", "maths", 3.5, {20.0, 30.0, 10.0}},
+            {"CS102", "eng", 3.8, {22.0, 28.0, 12.0}}
+        },
+        {10000.0, 5000.0, 5000.0} 
+    };
+
+    fwrite(&s, sizeof(struct student), 1, fp);
+    fclose(fp);
+}
 int validateEmail(char email[]) {
     if (email == NULL || email[0] == '\0') {
-        return 0; // Empty string is invalid
+        return 0; 
     }
 
     int at_count = 0, dot_count = 0;
@@ -175,7 +199,7 @@ void UpdateDetails() {
             
             printf("\n\n\t\t\tEnter new email: ");
             fgets(s.email, sizeof(s.email), stdin);
-            s.name[strcspn(s.name, "\n")] = '\0';
+            s.email[strcspn(s.email, "\n")] = '\0';
 
             printf("\n\n\t\t\tEnter new father's name: ");
             fgets(s.father_name, sizeof(s.father_name), stdin);
@@ -270,7 +294,7 @@ void reportcard() {
                        s.courses[j].course_marks.assignment, courseTotal);
             }
 
-            averageMarks = totalMarks / MAX_COURSES;
+            averageMarks = totalMarks / s.num_courses;
             printf("\n----------------------------------------------------\n");
             printf("\n\t\t\tOverall Total Marks: %.2f", totalMarks);
             printf("\n\t\t\tOverall Average Marks: %.2f", averageMarks);
@@ -500,7 +524,7 @@ int main() {
     int choice;
 
     startup();
-
+    AddDummyData();
     while (1) {
         printf("\n\n\t\t\tMenu:\n");
         printf("\t\t\t1. Add student details\n");
