@@ -329,7 +329,7 @@ void searchStudent() {
             printf("\n\n\t\t\tStudent Found:\n");
             printf("\n\t\t\tRoll: %d\n", s.roll);
             printf("\t\t\tName: %s\n", s.name);
-            printf("\n\t\t\tEmail: %d\n", s.email);
+            printf("\n\t\t\tEmail: %s\n", s.email);
             printf("\t\t\tFather's Name: %s\n", s.father_name);
             printf("\t\t\tSection: %c\n", s.section);
             break;
@@ -363,7 +363,7 @@ void searchStudentByName() {
             printf("\n\n\t\t\tStudent Found:\n");
             printf("\n\t\t\tRoll: %d\n", s.roll);
             printf("\t\t\tName: %s\n", s.name);
-            printf("\n\t\t\tEmail: %d\n", s.email);
+            printf("\n\t\t\tEmail: %s\n", s.email);
             printf("\t\t\tFather's Name: %s\n", s.father_name);
             printf("\t\t\tSection: %c\n", s.section);
             break;
